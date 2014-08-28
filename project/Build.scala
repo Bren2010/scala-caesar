@@ -7,6 +7,8 @@ object Build extends Build {
             name         := "caesar",
             organization := "com.bren2010",
             version      := "1.0",
-            scalaVersion := "2.11.2"
+            scalaVersion := "2.11.2",
+            
+            libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
         )
 }
