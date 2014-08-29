@@ -10,18 +10,19 @@ import javax.xml.bind._
   */
 case class Digest(out: Array[Byte]) {
     /** Converts digest to a hex string. */
-    def toHex(): String = DatatypeConverter.printHexBinary(out).toLowerCase()
+    def toHex: String = DatatypeConverter.printHexBinary(out).toLowerCase
 
     /** Returns digest's raw bytes. */
-    def toBytes(): Array[Byte] = out
+    def toBytes: Array[Byte] = out
 }
 
 /** Container for hash-related functions. */
 object Hash {
-    /** Enumeration of available hashing algorithms. */
-    object Algorithm extends Enumeration {
-        val Sha1, Sha256, Sha512 = Value
-    }
+    /** ADT of available hashing algorithms. */
+    sealed trait Algorithm
+    case object Sha1   extends Algorithm { override def toString = "SHA-1" }
+    case object Sha256 extends Algorithm { override def toString = "SHA-256" }
+    case object Sha512 extends Algorithm { override def toString = "SHA-512" }
 
     /** Builds a hash chain with a string as the anchor.  Returns a Digest.
       * 
@@ -29,7 +30,7 @@ object Hash {
       * @param anchor Anchor of the chain.
       * @param n      Length of the chain.
       */
-    def chainStr(alg: Algorithm.Value)(anchor: String, n: Int): Digest =
+    def chainStr(alg: Algorithm)(anchor: String, n: Int): Digest =
         chain(alg)(anchor.getBytes("UTF-8"), n)
 
     /** Builds a hash chain.  Returns a Digest.
@@ -38,28 +39,19 @@ object Hash {
       * @param anchor Anchor of the chain.
       * @param n      Length of the chain.
       */
-    def chain(alg: Algorithm.Value)(anchor: Array[Byte], n: Int): Digest = {
-        def RunOnce(algName: String, input: Array[Byte]): Digest = {
-            val md: MessageDigest = MessageDigest.getInstance(algName)
-
+    def chain(alg: Algorithm)(anchor: Array[Byte], n: Int): Digest = {
+        def RunOnce(input: Array[Byte]): Digest = {
+            val md: MessageDigest = MessageDigest.getInstance(alg.toString)
             new Digest(md.digest(input))
         }
 
-        val algName: String = alg match {
-            case Algorithm.Sha1   => "SHA-1"
-            case Algorithm.Sha256 => "SHA-256"
-            case Algorithm.Sha512 => "SHA-512"
-            case _ => "SHA-512"
-        }
-
-        val base: Digest = RunOnce(algName, anchor)
+        val base: Digest = RunOnce(anchor)
 
         (2 to n).foldLeft[Digest](base) { (input, x) =>
-            if (alg == Algorithm.Sha1 && input.toBytes().length == 20) {
-                RunOnce(algName, input.toHex().getBytes("UTF-8"))
-            } else {
-                RunOnce(algName, input.toBytes())
-            }
+          alg match {
+            case Sha1 => RunOnce(input.toHex.getBytes("UTF-8"))
+            case _    => RunOnce(input.toBytes)
+          }
         }
     }
 }
