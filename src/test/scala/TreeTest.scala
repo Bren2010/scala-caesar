@@ -18,13 +18,63 @@ class TreeTest extends FlatSpec with Matchers {
         comm.getCommit.toHex should be (Y)
     }
 
-    it should "generate the correct proof" in {
+    it should "succeed with the correct proof" in {
         val vals: List[String] = List("one", "two", "three", "four", "five")
         val comm: Committer = new Committer(vals, Hash.Sha256)
 
+
         val proof: Proof = comm.getProof { (x: String) => x == "four" || x == "one"}
 
-        proof.placing.foreach { println }
-        proof.candidates.foreach { (x: Digest) => println(x.toHex) }
+        val test = List("one", "four")
+        val ok = Verifier.verify(comm.getCommit, test, proof, Hash.Sha256)
+
+        ok should be (true)
+    }
+
+    it should "fail with incorrect values" in {
+        val vals: List[String] = List("one", "two", "three", "four", "five")
+        val comm: Committer = new Committer(vals, Hash.Sha256)
+
+
+        val proof: Proof = comm.getProof { (x: String) => x == "four" || x == "one"}
+
+        val test = List("one", "three")
+        val ok = Verifier.verify(comm.getCommit, test, proof, Hash.Sha256)
+
+        ok should be (false)
+    }
+
+    it should "fail with a partial proof" in {
+        val vals: List[String] = List("one", "two", "three", "four", "five")
+        val comm: Committer = new Committer(vals, Hash.Sha256)
+
+
+        val proof: Proof = comm.getProof { (x: String) => x == "four" || x == "one"}
+        val newProof = new Proof(proof.placing, proof.candidates.tail)
+
+        val test = List("one", "four")
+        val ok = Verifier.verify(comm.getCommit, test, newProof, Hash.Sha256)
+        val none = Verifier.forward(test, newProof, Hash.Sha256)
+
+        ok should be (false)
+        none should be (None)
+    }
+
+    it should "fail with a lengthened proof" in {
+        val vals: List[String] = List("one", "two", "three", "four", "five")
+        val comm: Committer = new Committer(vals, Hash.Sha256)
+
+
+        val proof: Proof = comm.getProof { (x: String) => x == "four" || x == "one"}
+
+        val cands = proof.candidates :+ Hash.chainStr(Hash.Sha256)("hello", 1)
+        val newProof = new Proof(proof.placing, cands)
+
+        val test = List("one", "four")
+        val ok = Verifier.verify(comm.getCommit, test, newProof, Hash.Sha256)
+        val notNone = Verifier.forward(test, newProof, Hash.Sha256)
+
+        ok should be (false)
+        notNone should not be (None)
     }
 }
