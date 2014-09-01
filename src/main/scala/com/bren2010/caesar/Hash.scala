@@ -47,11 +47,15 @@ object Hash {
 
         val base: Digest = RunOnce(anchor)
 
-        (2 to n).foldLeft[Digest](base) { (input, x) =>
+        (2 to n).foldLeft[Digest](base) { (input: Digest, x: Int) =>
           alg match {
             case Sha1 => RunOnce(input.toHex.getBytes("UTF-8"))
             case _    => RunOnce(input.toBytes)
           }
         }
     }
+
+    /** Converts a hex string to a Digest. */
+    def hex2Digest(out: String): Digest =
+        new Digest(DatatypeConverter.parseHexBinary(out))
 }
