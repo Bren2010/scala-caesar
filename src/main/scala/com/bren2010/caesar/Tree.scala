@@ -5,8 +5,6 @@ package com.bren2010.caesar
   * http://en.wikipedia.org/wiki/Merkle_tree
   */
 
-import javax.xml.bind._
-
 sealed case class TaggedDigest(tag: Boolean, digest: Digest)
 sealed case class KV(key: Int, value: Digest)
 
