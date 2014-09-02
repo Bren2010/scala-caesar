@@ -8,7 +8,7 @@ import javax.xml.bind._
   * @constructor creates a new digest
   * @param out   Bytes of the digest.
   */
-case class Digest(out: Array[Byte]) {
+case class Digest(out: Array[Byte] = Array()) {
     /** Converts digest to a hex string. */
     def toHex: String = DatatypeConverter.printHexBinary(out).toLowerCase
 

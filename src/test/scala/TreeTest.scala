@@ -18,7 +18,7 @@ class TreeTest extends FlatSpec with Matchers {
         comm.getCommit.toHex should be (Y)
     }
 
-    it should "succeed with the correct proof" in {
+    it should "succeed with the correct proof (left)" in {
         val vals: List[String] = List("one", "two", "three", "four", "five")
         val comm: Committer = new Committer(vals, Hash.Sha256)
 
@@ -26,6 +26,20 @@ class TreeTest extends FlatSpec with Matchers {
         val proof: Proof = comm.getProof { (x: String) => x == "four" || x == "one"}
 
         val test = List("one", "four")
+        val ok = Verifier.verify(comm.getCommit, test, proof, Hash.Sha256)
+
+        ok should be (true)
+    }
+
+
+    it should "succeed with the correct proof (right)" in {
+        val vals: List[String] = List("A", "B", "C", "D", "E", "F", "G", "H")
+        val comm: Committer = new Committer(vals, Hash.Sha256)
+
+
+        val proof: Proof = comm.getProof { (x: String) => x == "F" || x == "H"}
+
+        val test = List("F", "H")
         val ok = Verifier.verify(comm.getCommit, test, proof, Hash.Sha256)
 
         ok should be (true)

@@ -101,10 +101,7 @@ object Verifier {
       * @param proof  The provided proof of commitment.
       */
     def verify(head: Digest, vals: List[String], proof: Proof, alg: Hash.Algorithm): Boolean =
-        forward(vals, proof, alg) match {
-            case None => false
-            case Some(digest) => digest.toHex == head.toHex
-        }
+        forward(vals, proof, alg).getOrElse(new Digest()).toHex == head.toHex
 
     /** Applies the given proof to the given values and returns a Digest.
       * Represents the full reconstruction of a Merkle tree with only 
@@ -118,33 +115,30 @@ object Verifier {
         def hashStr(input: String): Digest = Hash.chainStr(alg)(input, 1)
 
         /** Pair keys from proof.placing with values . */
-        val size: Int = math.min(vals.length, proof.placing.length) - 1
-        val base: List[KV] = (0 to size).foldLeft[List[KV]](List()) {
-            (soFar: List[KV], x: Int) =>
-                soFar :+ ((proof.placing(x), hashStr(vals(x))))
+        val base: List[KV] = (proof.placing zip vals).map {
+            (kv: (Int, String)) => (kv._1, hashStr(kv._2))
         }
 
         def RunOnce(kvs: List[KV], cands: List[Digest]): (List[KV], List[Digest]) = {
-            val paddedKvs: List[KV] = kvs :+ (kvs.length + 1, hash(Array()))
+            val paddedKvs: List[KV] = kvs :+ (kvs.length + 1, new Digest())
 
             val out = paddedKvs.foldLeft[Collector]((None, List(), cands)) {
                 (state: Collector, a: KV) => state match {
                     case (None, y, z) => (Some(a), y, z)
+                    case (x, y, List()) => (None, List(), List())
                     case (Some(x), y, z) =>
                         if (x._1 % 2 == 0 && x._1 + 1 == a._1) {
                             val newOut = (x._1 / 2, hash(x._2.toBytes ++ a._2.toBytes))
                             
                             (None, y :+ newOut, z)
-                        } else if (x._1 % 2 == 0 && z.length > 0) {
+                        } else if (x._1 % 2 == 0) {
                             val newOut = (x._1 / 2, hash(x._2.toBytes ++ z.head.toBytes))
 
                             (Some(a), y :+ newOut, z.tail)
-                        } else if (z.length > 0) {
+                        } else {
                             val newOut = (x._1 / 2, hash(z.head.toBytes ++ x._2.toBytes))
 
                             (Some(a), y :+ newOut, z.tail)
-                        } else {
-                            (None, List(), List())
                         }
                 }
             }
